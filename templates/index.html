@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Rapidim - Text to Speech</title>
+    <meta name="description" content="Converta texto em áudio com vozes neurais Azure e Google TTS">
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🎤</span>
+                <h1>TTS Rapidim</h1>
+            </div>
+            <p class="subtitle">Converta texto em áudio com vozes neurais</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Step 1: Text Input -->
+            <section class="step-card" id="step1">
+                <div class="step-header">
+                    <span class="step-number">1</span>
+                    <h2>Cole seu texto</h2>
+                </div>
+                <div class="text-input-area">
+                    <textarea id="inputText" placeholder="Cole aqui o texto que deseja converter em áudio..."
+                        rows="10"></textarea>
+                    <div class="char-counter">
+                        <span id="charCount">0</span> caracteres
+                    </div>
+                </div>
+                <div class="settings-row">
+                    <div class="setting-group">
+                        <label>Motor TTS</label>
+                        <select id="engineSelect">
+                            <option value="edge" selected>🔷 Microsoft Edge TTS (Recomendado)</option>
+                            <option value="google">🔴 Google TTS</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>Idioma</label>
+                        <select id="languageSelect">
+                            <option value="pt-BR">🇧🇷 Português (Brasil)</option>
+                            <option value="en-US">🇺🇸 Inglês (EUA)</option>
+                            <option value="es-MX">🇲🇽 Espanhol (México/Latino)</option>
+                            <option value="es-AR">🇦🇷 Espanhol (Argentina)</option>
+                            <option value="fr-FR">🇫🇷 Francês (França)</option>
+                            <option value="multilingual">🌐 Multilingual</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label>Voz</label>
+                        <select id="voiceSelect">
+                            <!-- Preenchido via JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Opção de travar sotaque (para multilingual) -->
+                <div class="settings-row multilingual-options" id="multilingualOptions" style="display: none;">
+                    <div class="setting-group full-width">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="lockAccent">
+                            <span class="checkmark"></span>
+                            🔒 Travar sotaque (forçar idioma) - ⚠️ Instável
+                        </label>
+                        <select id="forceLanguage">
+                            <option value="pt-BR">🇧🇷 Português (Brasil)</option>
+                            <option value="en-US">🇺🇸 Inglês (EUA)</option>
+                            <option value="es-MX">🇲🇽 Espanhol (México)</option>
+                            <option value="fr-FR">🇫🇷 Francês (França)</option>
+                        </select>
+                        <small class="help-text">💡 Dica: Deixe desmarcado. As vozes multilinguais leem português
+                            naturalmente sem precisar forçar!</small>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="splitBtn" onclick="splitText()">
+                    ✂️ Cortar Texto em Blocos
+                </button>
+            </section>
+
+            <!-- Step 2: Block Editor -->
+            <section class="step-card hidden" id="step2">
+                <div class="step-header">
+                    <span class="step-number">2</span>
+                    <h2>Editar Blocos</h2>
+                    <span class="block-stats" id="blockStats"></span>
+                </div>
+
+                <div class="editor-toolbar">
+                    <button class="btn-secondary" onclick="addBlock()">➕ Adicionar Bloco</button>
+                    <button class="btn-secondary" onclick="resetBlocks()">🔄 Recortar</button>
+                    <button class="btn-secondary" id="toggleExpandBtn" onclick="toggleExpandAll()">📖 Expandir Blocos</button>
+                    <span class="toolbar-info">Arraste para reordenar • Clique para editar</span>
+                </div>
+
+                <div class="blocks-container" id="blocksContainer">
+                    <!-- Blocos serão inseridos aqui via JS -->
+                </div>
+
+                <button class="btn-primary" id="processBtn" onclick="processBlocks()">
+                    🔊 Processar Áudio
+                </button>
+            </section>
+
+            <!-- Step 3: Processing & Download -->
+            <section class="step-card hidden" id="step3">
+                <div class="step-header">
+                    <span class="step-number">3</span>
+                    <h2>Processamento</h2>
+                </div>
+
+                <div class="progress-area">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span id="progressText">Aguardando...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                </div>
+
+                <div class="queue-list" id="queueList">
+                    <!-- Fila de processamento -->
+                </div>
+
+                <div class="download-area hidden" id="downloadArea">
+                    <div class="success-message">
+                        <span class="success-icon">✅</span>
+                        <h3>Áudio pronto!</h3>
+                        <p id="audioDuration"></p>
+                    </div>
+
+                    <!-- Player de Áudio -->
+                    <div class="audio-player">
+                        <audio id="audioPlayer" controls>
+                            Seu navegador não suporta o elemento de áudio.
+                        </audio>
+                    </div>
+
+                    <div class="download-buttons">
+                        <button class="btn-download" id="downloadBtn" onclick="downloadAudio()">
+                            ⬇️ Baixar MP3
+                        </button>
+                        <button class="btn-secondary" onclick="startOver()">
+                            🔄 Novo Texto
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>TTS Rapidim v1.0 • Vozes neurais gratuitas com Edge TTS e Google TTS</p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>

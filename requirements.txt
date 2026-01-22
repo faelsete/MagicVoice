@@ -1,0 +1,15 @@
+# TTS Rapidim - Dependencies
+# Python 3.9+
+
+# Web Framework
+flask>=2.3.0
+
+# TTS Engines
+edge-tts>=6.1.0
+gTTS>=2.4.0
+
+# Audio Processing
+pydub>=0.25.0
+
+# Utilities
+python-dotenv>=1.0.0
