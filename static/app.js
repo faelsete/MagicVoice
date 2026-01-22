@@ -5,7 +5,7 @@
 
 // Constants
 const MAX_CHARS_CONVERSION = 8000;  // ~9 min audio
-const MAX_CHARS_AUDIOBOOK = 50000;  // Larger texts with blocks
+const MAX_CHARS_AUDIOBOOK = Infinity;  // Sem limite - divide em blocos automaticamente
 const BLOCK_SIZE = 2500;
 
 // Voices data
@@ -95,7 +95,7 @@ function setMode(mode) {
 // Update character limit based on mode
 function updateCharLimit() {
     const limit = currentMode === 'conversion' ? MAX_CHARS_CONVERSION : MAX_CHARS_AUDIOBOOK;
-    charLimit.textContent = limit.toLocaleString();
+    charLimit.textContent = limit === Infinity ? 'ilimitado' : limit.toLocaleString();
     updateCharCount();
 }
 
