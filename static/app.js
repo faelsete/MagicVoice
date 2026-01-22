@@ -378,14 +378,27 @@ const azureRegion = document.getElementById('azureRegion');
 // Premium voices (only shown when Azure is enabled)
 const AZURE_PREMIUM_VOICES = {
     'pt-BR': [
+        // Básicas (também no edge-tts)
         { id: 'pt-BR-AntonioNeural', name: 'Antônio', premium: false },
         { id: 'pt-BR-FranciscaNeural', name: 'Francisca', premium: false },
         { id: 'pt-BR-ThalitaNeural', name: 'Thalita', premium: false },
+        // Premium exclusivas Azure
+        { id: 'pt-BR-BrendaNeural', name: 'Brenda ⭐', premium: true },
+        { id: 'pt-BR-DonatoNeural', name: 'Donato ⭐', premium: true },
+        { id: 'pt-BR-ElzaNeural', name: 'Elza ⭐', premium: true },
+        { id: 'pt-BR-FabioNeural', name: 'Fábio ⭐', premium: true },
+        { id: 'pt-BR-GiovannaNeural', name: 'Giovanna ⭐', premium: true },
+        { id: 'pt-BR-HumbertoNeural', name: 'Humberto ⭐', premium: true },
+        { id: 'pt-BR-JulioNeural', name: 'Julio ⭐', premium: true },
+        { id: 'pt-BR-LeilaNeural', name: 'Leila ⭐', premium: true },
         { id: 'pt-BR-LeticiaNeural', name: 'Letícia ⭐', premium: true },
         { id: 'pt-BR-ManuelaNeural', name: 'Manuela ⭐', premium: true },
         { id: 'pt-BR-NicolauNeural', name: 'Nicolau ⭐', premium: true },
         { id: 'pt-BR-ValerioNeural', name: 'Valério ⭐', premium: true },
-        { id: 'pt-BR-YaraNeural', name: 'Yara ⭐', premium: true }
+        { id: 'pt-BR-YaraNeural', name: 'Yara ⭐', premium: true },
+        // Multilíngues
+        { id: 'pt-BR-MacerioMultilingualNeural', name: 'Macério (Multi) ⭐', premium: true },
+        { id: 'pt-BR-ThalitaMultilingualNeural', name: 'Thalita (Multi) ⭐', premium: true }
     ],
     'en-US': [
         { id: 'en-US-GuyNeural', name: 'Guy', premium: false },
@@ -407,7 +420,9 @@ const AZURE_PREMIUM_VOICES = {
         { id: 'en-US-AvaMultilingualNeural', name: 'Ava', premium: false },
         { id: 'en-US-AndrewMultilingualNeural', name: 'Andrew', premium: false },
         { id: 'en-US-EmmaMultilingualNeural', name: 'Emma', premium: false },
-        { id: 'en-US-BrianMultilingualNeural', name: 'Brian', premium: false }
+        { id: 'en-US-BrianMultilingualNeural', name: 'Brian', premium: false },
+        { id: 'pt-BR-MacerioMultilingualNeural', name: 'Macério (PT-BR) ⭐', premium: true },
+        { id: 'pt-BR-ThalitaMultilingualNeural', name: 'Thalita (PT-BR) ⭐', premium: true }
     ]
 };
 

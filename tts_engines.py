@@ -241,14 +241,25 @@ class AzureTTSEngine(TTSEngine):
     # Vozes Premium PT-BR (não disponíveis no edge-tts gratuito)
     PREMIUM_VOICES = {
         'pt-BR': [
+            # Vozes básicas (também no edge-tts)
             Voice('pt-BR-AntonioNeural', 'Antônio', 'Português', 'pt-BR', 'male', 'azure'),
             Voice('pt-BR-FranciscaNeural', 'Francisca', 'Português', 'pt-BR', 'female', 'azure'),
             Voice('pt-BR-ThalitaNeural', 'Thalita', 'Português', 'pt-BR', 'female', 'azure'),
+            # Vozes Premium exclusivas Azure
+            Voice('pt-BR-BrendaNeural', 'Brenda', 'Português', 'pt-BR', 'female', 'azure'),
+            Voice('pt-BR-DonatoNeural', 'Donato', 'Português', 'pt-BR', 'male', 'azure'),
+            Voice('pt-BR-ElzaNeural', 'Elza', 'Português', 'pt-BR', 'female', 'azure'),
+            Voice('pt-BR-FabioNeural', 'Fábio', 'Português', 'pt-BR', 'male', 'azure'),
+            Voice('pt-BR-GiovannaNeural', 'Giovanna', 'Português', 'pt-BR', 'female', 'azure'),
+            Voice('pt-BR-HumbertoNeural', 'Humberto', 'Português', 'pt-BR', 'male', 'azure'),
+            Voice('pt-BR-JulioNeural', 'Julio', 'Português', 'pt-BR', 'male', 'azure'),
+            Voice('pt-BR-LeilaNeural', 'Leila', 'Português', 'pt-BR', 'female', 'azure'),
             Voice('pt-BR-LeticiaNeural', 'Letícia', 'Português', 'pt-BR', 'female', 'azure'),
             Voice('pt-BR-ManuelaNeural', 'Manuela', 'Português', 'pt-BR', 'female', 'azure'),
             Voice('pt-BR-NicolauNeural', 'Nicolau', 'Português', 'pt-BR', 'male', 'azure'),
             Voice('pt-BR-ValerioNeural', 'Valério', 'Português', 'pt-BR', 'male', 'azure'),
             Voice('pt-BR-YaraNeural', 'Yara', 'Português', 'pt-BR', 'female', 'azure'),
+            # Multilíngues
             Voice('pt-BR-MacerioMultilingualNeural', 'Macério (Multi)', 'Português', 'pt-BR', 'male', 'azure', True),
             Voice('pt-BR-ThalitaMultilingualNeural', 'Thalita (Multi)', 'Português', 'pt-BR', 'female', 'azure', True),
         ],
