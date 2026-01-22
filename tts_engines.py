@@ -235,13 +235,173 @@ class GoogleTTSEngine(TTSEngine):
         tts.save(output_path)
 
 
+class AzureTTSEngine(TTSEngine):
+    """Motor Azure TTS Oficial (Requer API Key - Vozes Premium)"""
+    
+    # Vozes Premium PT-BR (não disponíveis no edge-tts gratuito)
+    PREMIUM_VOICES = {
+        'pt-BR': [
+            Voice('pt-BR-AntonioNeural', 'Antônio', 'Português', 'pt-BR', 'male', 'azure'),
+            Voice('pt-BR-FranciscaNeural', 'Francisca', 'Português', 'pt-BR', 'female', 'azure'),
+            Voice('pt-BR-ThalitaNeural', 'Thalita', 'Português', 'pt-BR', 'female', 'azure'),
+            Voice('pt-BR-LeticiaNeural', 'Letícia', 'Português', 'pt-BR', 'female', 'azure'),
+            Voice('pt-BR-ManuelaNeural', 'Manuela', 'Português', 'pt-BR', 'female', 'azure'),
+            Voice('pt-BR-NicolauNeural', 'Nicolau', 'Português', 'pt-BR', 'male', 'azure'),
+            Voice('pt-BR-ValerioNeural', 'Valério', 'Português', 'pt-BR', 'male', 'azure'),
+            Voice('pt-BR-YaraNeural', 'Yara', 'Português', 'pt-BR', 'female', 'azure'),
+            Voice('pt-BR-MacerioMultilingualNeural', 'Macério (Multi)', 'Português', 'pt-BR', 'male', 'azure', True),
+            Voice('pt-BR-ThalitaMultilingualNeural', 'Thalita (Multi)', 'Português', 'pt-BR', 'female', 'azure', True),
+        ],
+        'en-US': [
+            Voice('en-US-GuyNeural', 'Guy', 'English', 'en-US', 'male', 'azure'),
+            Voice('en-US-JennyNeural', 'Jenny', 'English', 'en-US', 'female', 'azure'),
+            Voice('en-US-AriaNeural', 'Aria', 'English', 'en-US', 'female', 'azure'),
+            Voice('en-US-DavisNeural', 'Davis', 'English', 'en-US', 'male', 'azure'),
+            Voice('en-US-JasonNeural', 'Jason', 'English', 'en-US', 'male', 'azure'),
+            Voice('en-US-NancyNeural', 'Nancy', 'English', 'en-US', 'female', 'azure'),
+            Voice('en-US-SaraNeural', 'Sara', 'English', 'en-US', 'female', 'azure'),
+            Voice('en-US-TonyNeural', 'Tony', 'English', 'en-US', 'male', 'azure'),
+        ],
+        'es-MX': [
+            Voice('es-MX-JorgeNeural', 'Jorge', 'Español', 'es-MX', 'male', 'azure'),
+            Voice('es-MX-DaliaNeural', 'Dalia', 'Español', 'es-MX', 'female', 'azure'),
+            Voice('es-MX-BeatrizNeural', 'Beatriz', 'Español', 'es-MX', 'female', 'azure'),
+            Voice('es-MX-CandelaNeural', 'Candela', 'Español', 'es-MX', 'female', 'azure'),
+        ]
+    }
+    
+    def __init__(self, api_key: str = None, region: str = 'eastus'):
+        self.api_key = api_key
+        self.region = region
+        self._sdk_available = False
+        
+        # Tenta importar o SDK
+        try:
+            import azure.cognitiveservices.speech as speechsdk
+            self._sdk_available = True
+            self.speechsdk = speechsdk
+        except ImportError:
+            print("[AzureTTS] SDK não instalado. Execute: pip install azure-cognitiveservices-speech")
+    
+    def set_credentials(self, api_key: str, region: str):
+        """Define as credenciais dinamicamente"""
+        self.api_key = api_key
+        self.region = region
+    
+    def get_voices(self) -> List[Voice]:
+        """Retorna todas as vozes premium"""
+        all_voices = []
+        for voices in self.PREMIUM_VOICES.values():
+            all_voices.extend(voices)
+        return all_voices
+    
+    async def synthesize(self, text: str, voice_id: str, output_path: str,
+                         force_language: Optional[str] = None) -> TTSResult:
+        """Sintetiza texto usando Azure TTS SDK"""
+        
+        if not self._sdk_available:
+            return TTSResult(
+                success=False,
+                audio_path=None,
+                error="Azure SDK não instalado. Execute: pip install azure-cognitiveservices-speech"
+            )
+        
+        if not self.api_key or not self.region:
+            return TTSResult(
+                success=False,
+                audio_path=None,
+                error="Azure API Key ou região não configurados"
+            )
+        
+        try:
+            print(f"    [AzureTTS] Iniciando síntese: {voice_id}", flush=True)
+            print(f"    [AzureTTS] Texto: {len(text)} chars", flush=True)
+            
+            # Configura o SDK
+            speech_config = self.speechsdk.SpeechConfig(
+                subscription=self.api_key,
+                region=self.region
+            )
+            speech_config.speech_synthesis_voice_name = voice_id
+            
+            # Configura saída para arquivo WAV
+            audio_config = self.speechsdk.audio.AudioOutputConfig(filename=output_path)
+            
+            # Cria o sintetizador
+            synthesizer = self.speechsdk.SpeechSynthesizer(
+                speech_config=speech_config,
+                audio_config=audio_config
+            )
+            
+            # Sintetiza
+            print(f"    [AzureTTS] Conectando ao Azure...", flush=True)
+            
+            if force_language:
+                # Usa SSML para forçar idioma
+                ssml = self._create_ssml(text, voice_id, force_language)
+                result = synthesizer.speak_ssml_async(ssml).get()
+            else:
+                result = synthesizer.speak_text_async(text).get()
+            
+            # Verifica resultado
+            if result.reason == self.speechsdk.ResultReason.SynthesizingAudioCompleted:
+                print(f"    [AzureTTS] ✓ Síntese concluída", flush=True)
+                return TTSResult(
+                    success=True,
+                    audio_path=output_path,
+                    error=None
+                )
+            elif result.reason == self.speechsdk.ResultReason.Canceled:
+                cancellation = result.cancellation_details
+                error_msg = f"Cancelado: {cancellation.reason}"
+                if cancellation.error_details:
+                    error_msg += f" - {cancellation.error_details}"
+                print(f"    [AzureTTS] ✗ {error_msg}", flush=True)
+                return TTSResult(
+                    success=False,
+                    audio_path=None,
+                    error=error_msg
+                )
+            else:
+                return TTSResult(
+                    success=False,
+                    audio_path=None,
+                    error=f"Resultado inesperado: {result.reason}"
+                )
+                
+        except Exception as e:
+            print(f"    [AzureTTS] ✗ Erro: {str(e)}", flush=True)
+            return TTSResult(
+                success=False,
+                audio_path=None,
+                error=str(e)
+            )
+    
+    def _create_ssml(self, text: str, voice_id: str, language: str) -> str:
+        """Cria SSML para forçar idioma"""
+        text = text.replace('&', '&amp;')
+        text = text.replace('<', '&lt;')
+        text = text.replace('>', '&gt;')
+        text = text.replace('"', '&quot;')
+        text = text.replace("'", '&apos;')
+        
+        return f'''<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="{language}">
+    <voice name="{voice_id}">
+        <lang xml:lang="{language}">
+            {text}
+        </lang>
+    </voice>
+</speak>'''
+
+
 class TTSManager:
     """Gerenciador de motores TTS"""
     
     def __init__(self):
         self.engines: Dict[str, TTSEngine] = {
             'edge': EdgeTTSEngine(),
-            'google': GoogleTTSEngine()
+            'google': GoogleTTSEngine(),
+            'azure': AzureTTSEngine()
         }
     
     def get_engine(self, engine_name: str) -> TTSEngine:

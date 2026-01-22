@@ -240,6 +240,15 @@ def process_text():
     voice_id = data.get('voice_id', 'pt-BR-FranciscaNeural')
     force_language = data.get('force_language')  # Para vozes multilingual
     
+    # Credenciais Azure (opcional)
+    azure_config = data.get('azure_config')
+    if azure_config and engine == 'azure':
+        azure_engine = tts_manager.get_engine('azure')
+        azure_engine.set_credentials(
+            api_key=azure_config.get('apiKey'),
+            region=azure_config.get('region', 'eastus')
+        )
+    
     if not blocks:
         return jsonify({'error': 'Nenhum bloco fornecido'}), 400
     

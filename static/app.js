@@ -196,16 +196,31 @@ async function generateAudio() {
     showProgress();
 
     try {
+        // Check if Azure is configured
+        const azureConfigured = isAzureConfigured();
+        const settings = JSON.parse(localStorage.getItem('magicvoice_settings') || '{}');
+
+        // Build request body
+        const requestBody = {
+            blocks: blocks,
+            engine: azureConfigured ? 'azure' : 'edge',
+            voice_id: voiceSelect.value,
+            force_language: null
+        };
+
+        // Add Azure credentials if configured
+        if (azureConfigured && settings.azure) {
+            requestBody.azure_config = {
+                apiKey: settings.azure.apiKey,
+                region: settings.azure.region
+            };
+        }
+
         // Start processing
         const response = await fetch('/api/process', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                blocks: blocks,
-                engine: 'edge',
-                voice_id: voiceSelect.value,
-                force_language: null
-            })
+            body: JSON.stringify(requestBody)
         });
 
         const data = await response.json();
