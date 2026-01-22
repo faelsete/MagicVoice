@@ -349,3 +349,149 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// ==========================================
+// SETTINGS
+// ==========================================
+
+const settingsModal = document.getElementById('settingsModal');
+const azureEnabled = document.getElementById('azureEnabled');
+const azureFields = document.getElementById('azureFields');
+const azureApiKey = document.getElementById('azureApiKey');
+const azureRegion = document.getElementById('azureRegion');
+
+// Premium voices (only shown when Azure is enabled)
+const AZURE_PREMIUM_VOICES = {
+    'pt-BR': [
+        { id: 'pt-BR-AntonioNeural', name: 'Antônio', premium: false },
+        { id: 'pt-BR-FranciscaNeural', name: 'Francisca', premium: false },
+        { id: 'pt-BR-ThalitaNeural', name: 'Thalita', premium: false },
+        { id: 'pt-BR-LeticiaNeural', name: 'Letícia ⭐', premium: true },
+        { id: 'pt-BR-ManuelaNeural', name: 'Manuela ⭐', premium: true },
+        { id: 'pt-BR-NicolauNeural', name: 'Nicolau ⭐', premium: true },
+        { id: 'pt-BR-ValerioNeural', name: 'Valério ⭐', premium: true },
+        { id: 'pt-BR-YaraNeural', name: 'Yara ⭐', premium: true }
+    ],
+    'en-US': [
+        { id: 'en-US-GuyNeural', name: 'Guy', premium: false },
+        { id: 'en-US-JennyNeural', name: 'Jenny', premium: false },
+        { id: 'en-US-AriaNeural', name: 'Aria', premium: false },
+        { id: 'en-US-DavisNeural', name: 'Davis ⭐', premium: true },
+        { id: 'en-US-JasonNeural', name: 'Jason ⭐', premium: true },
+        { id: 'en-US-NancyNeural', name: 'Nancy ⭐', premium: true },
+        { id: 'en-US-SaraNeural', name: 'Sara ⭐', premium: true },
+        { id: 'en-US-TonyNeural', name: 'Tony ⭐', premium: true }
+    ],
+    'es-MX': [
+        { id: 'es-MX-JorgeNeural', name: 'Jorge', premium: false },
+        { id: 'es-MX-DaliaNeural', name: 'Dalia', premium: false },
+        { id: 'es-MX-BeatrizNeural', name: 'Beatriz ⭐', premium: true },
+        { id: 'es-MX-CandelaNeural', name: 'Candela ⭐', premium: true }
+    ],
+    'multilingual': [
+        { id: 'en-US-AvaMultilingualNeural', name: 'Ava', premium: false },
+        { id: 'en-US-AndrewMultilingualNeural', name: 'Andrew', premium: false },
+        { id: 'en-US-EmmaMultilingualNeural', name: 'Emma', premium: false },
+        { id: 'en-US-BrianMultilingualNeural', name: 'Brian', premium: false }
+    ]
+};
+
+// Load settings from localStorage
+function loadSettings() {
+    const settings = JSON.parse(localStorage.getItem('magicvoice_settings') || '{}');
+
+    if (settings.azure) {
+        azureEnabled.checked = settings.azure.enabled || false;
+        azureApiKey.value = settings.azure.apiKey || '';
+        azureRegion.value = settings.azure.region || 'eastus';
+
+        if (settings.azure.enabled) {
+            azureFields.classList.add('active');
+        }
+    }
+
+    // Update voices based on settings
+    updateVoices();
+}
+
+// Save settings to localStorage
+function saveSettings() {
+    const settings = {
+        azure: {
+            enabled: azureEnabled.checked,
+            apiKey: azureApiKey.value,
+            region: azureRegion.value
+        }
+    };
+
+    localStorage.setItem('magicvoice_settings', JSON.stringify(settings));
+
+    // Update voices with new settings
+    updateVoices();
+
+    closeSettings();
+}
+
+// Open settings modal
+function openSettings() {
+    loadSettings();
+    settingsModal.classList.add('active');
+}
+
+// Close settings modal
+function closeSettings() {
+    settingsModal.classList.remove('active');
+}
+
+// Close on overlay click
+function closeSettingsOnOverlay(event) {
+    if (event.target === settingsModal) {
+        closeSettings();
+    }
+}
+
+// Toggle Azure fields visibility
+function toggleAzure() {
+    if (azureEnabled.checked) {
+        azureFields.classList.add('active');
+    } else {
+        azureFields.classList.remove('active');
+    }
+}
+
+// Check if Azure is configured
+function isAzureConfigured() {
+    const settings = JSON.parse(localStorage.getItem('magicvoice_settings') || '{}');
+    return settings.azure && settings.azure.enabled && settings.azure.apiKey;
+}
+
+// Override updateVoices to include premium voices
+const originalUpdateVoices = updateVoices;
+updateVoices = function () {
+    const lang = languageSelect.value;
+    const azureConfigured = isAzureConfigured();
+
+    // Get voices based on Azure status
+    let voices;
+    if (azureConfigured) {
+        voices = AZURE_PREMIUM_VOICES[lang] || [];
+    } else {
+        voices = VOICES[lang] || [];
+    }
+
+    voiceSelect.innerHTML = '';
+    voices.forEach(v => {
+        // Skip premium voices if Azure is not configured
+        if (v.premium && !azureConfigured) return;
+
+        const option = document.createElement('option');
+        option.value = v.id;
+        option.textContent = v.name;
+        voiceSelect.appendChild(option);
+    });
+};
+
+// Initialize settings on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+});

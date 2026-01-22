@@ -21,6 +21,13 @@
                 </svg>
                 MagicVoice
             </div>
+            <button class="settings-btn" onclick="openSettings()" title="Configurações">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+            </button>
         </div>
     </header>
 
@@ -117,6 +124,65 @@
             </div>
         </div>
     </main>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal" onclick="closeSettingsOnOverlay(event)">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Configurações</h2>
+                <button class="modal-close" onclick="closeSettings()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Azure TTS Section -->
+                <div class="settings-section">
+                    <div class="settings-section-header">
+                        <h3>Azure TTS</h3>
+                        <label class="toggle">
+                            <input type="checkbox" id="azureEnabled" onchange="toggleAzure()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <p class="settings-description">Ative para desbloquear vozes premium com qualidade superior.</p>
+
+                    <div class="settings-fields" id="azureFields">
+                        <div class="field-group">
+                            <label class="field-label">API Key</label>
+                            <input type="password" class="field-input" id="azureApiKey"
+                                placeholder="Cole sua API Key do Azure">
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Região</label>
+                            <select class="field-input" id="azureRegion">
+                                <option value="eastus">East US</option>
+                                <option value="westus">West US</option>
+                                <option value="westeurope">West Europe</option>
+                                <option value="southeastasia">Southeast Asia</option>
+                                <option value="brazilsouth">Brazil South</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ElevenLabs Section (Coming Soon) -->
+                <div class="settings-section disabled">
+                    <div class="settings-section-header">
+                        <h3>ElevenLabs</h3>
+                        <span class="coming-soon-badge">Em breve</span>
+                    </div>
+                    <p class="settings-description">Vozes ultra-realistas com clonagem de voz.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeSettings()">Cancelar</button>
+                <button class="btn-primary" onclick="saveSettings()">Salvar</button>
+            </div>
+        </div>
+    </div>
 
     <script src="/static/app.js"></script>
 </body>
