@@ -24,6 +24,14 @@ app.config['SECRET_KEY'] = os.urandom(24)
 
 # Diretório para arquivos temporários de áudio
 AUDIO_DIR = Path(tempfile.gettempdir()) / "tts_rapidim"
+
+# Limpa diretório ao iniciar (evita confusão com jobs antigos)
+if AUDIO_DIR.exists():
+    try:
+        shutil.rmtree(AUDIO_DIR)
+        print("[Startup] Diretório temp limpo")
+    except:
+        pass
 AUDIO_DIR.mkdir(exist_ok=True)
 
 # Jobs em processamento (em produção usaria Redis ou similar)
@@ -115,7 +123,7 @@ def process_job_async(job: TTSJob):
 
 
 async def _process_job(job: TTSJob):
-    """Processa os blocos de texto e gera áudios"""
+    """Processa os blocos de texto e gera áudios em paralelo"""
     try:
         print(f"\n[JOB {job.job_id[:8]}] Iniciando processamento...")
         print(f"  Engine: {job.engine}")
@@ -137,83 +145,90 @@ async def _process_job(job: TTSJob):
         # IMPORTANTE: Usa o tts_manager global (que tem as credenciais configuradas)
         # NÃO criar TTSManager() novo aqui pois perde as credenciais!
         
-        for i, block in enumerate(job.blocks):
-            # Se o job já estiver marcado como erro por outra thread ou verificação, para
-            if job.status == "error":
-                break
+        # Configuração de paralelização
+        MAX_WORKERS = 3  # Processa 3 blocos simultâneos
+        semaphore = asyncio.Semaphore(MAX_WORKERS)
+        
+        async def process_single_block(i, block):
+            """Processa um único bloco com retry e semáforo"""
+            async with semaphore:  # Limita concorrência
+                # Pula blocos já processados (checkpoint)
+                output_path = str(job_dir / f"block_{i:04d}.mp3")
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
+                    if output_path not in job.audio_files:
+                        job.audio_files.append(output_path)
+                        job.processed_blocks += 1
+                    print(f"\n  [Bloco {i+1}/{job.total_blocks}] ✓ Já existe (pulado)")
+                    return True
 
-            # Pula blocos já processados (checkpoint)
-            output_path = str(job_dir / f"block_{i:04d}.mp3")
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 1000:
-                if output_path not in job.audio_files:
-                    job.audio_files.append(output_path)
-                    job.processed_blocks = i + 1
-                print(f"\n  [Bloco {i+1}/{job.total_blocks}] ✓ Já existe (pulado)")
-                continue
-
-            text_preview = block['content'][:50] + "..." if len(block['content']) > 50 else block['content']
-            print(f"\n  [Bloco {i+1}/{job.total_blocks}] {text_preview}")
-            
-            # Retry automático (até 3 tentativas)
-            max_retries = 3
-            retry_count = 0
-            success = False
-            
-            while retry_count < max_retries and not success:
-                try:
-                    result = await tts_manager.synthesize(
-                        text=block['content'],
-                        engine_name=job.engine,
-                        voice_id=job.voice_id,
-                        output_path=output_path,
-                        force_language=job.force_language
-                    )
-                    
-                    if result.success:
-                        # Verifica se o arquivo foi realmente criado
-                        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                            job.audio_files.append(output_path)
-                            job.processed_blocks = i + 1
-                            print(f"    ✓ Áudio gerado: {os.path.getsize(output_path)} bytes")
-                            success = True
-                            
-                            # Salva checkpoint a cada bloco
-                            job.save_checkpoint(job_dir)
+                text_preview = block['content'][:50] + "..." if len(block['content']) > 50 else block['content']
+                print(f"\n  [Bloco {i+1}/{job.total_blocks}] {text_preview}")
+                
+                # Retry automático (até 3 tentativas)
+                max_retries = 3
+                retry_count = 0
+                
+                while retry_count < max_retries:
+                    try:
+                        result = await tts_manager.synthesize(
+                            text=block['content'],
+                            engine_name=job.engine,
+                            voice_id=job.voice_id,
+                            output_path=output_path,
+                            force_language=job.force_language
+                        )
+                        
+                        if result.success:
+                            # Verifica se o arquivo foi realmente criado
+                            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                                job.audio_files.append(output_path)
+                                job.processed_blocks += 1
+                                print(f"    ✓ Áudio gerado: {os.path.getsize(output_path)} bytes")
+                                
+                                # Salva checkpoint a cada bloco
+                                job.save_checkpoint(job_dir)
+                                return True
+                            else:
+                                raise Exception("Arquivo vazio ou não criado")
                         else:
-                            raise Exception("Arquivo vazio ou não criado")
-                    else:
-                        raise Exception(result.error or "Erro desconhecido")
-                        
-                except asyncio.TimeoutError:
-                    retry_count += 1
-                    if retry_count < max_retries:
-                        wait_time = 2 ** retry_count  # Exponential backoff
-                        print(f"    ⚠ Timeout! Tentativa {retry_count}/{max_retries}. Aguardando {wait_time}s...")
-                        await asyncio.sleep(wait_time)
-                    else:
-                        error_msg = f"Timeout após {max_retries} tentativas no bloco {i+1}"
-                        print(f"    ✗ {error_msg}")
-                        job.error = error_msg
-                        job.status = "error"
-                        job.save_checkpoint(job_dir)  # Salva antes de abortar
-                        break
-                        
-                except Exception as e:
-                    retry_count += 1
-                    if retry_count < max_retries:
-                        print(f"    ⚠ Erro: {str(e)}. Tentativa {retry_count}/{max_retries}...")
-                        await asyncio.sleep(2)
-                    else:
-                        error_msg = f"Erro ao sintetizar bloco {i+1}: {str(e)}"
-                        print(f"    ✗ {error_msg}")
-                        job.error = error_msg
-                        job.status = "error"
-                        job.save_checkpoint(job_dir)
-                        break
-            
-            # Atualiza progresso
-            if success:
-                job.progress = int((job.processed_blocks / job.total_blocks) * 100)
+                            raise Exception(result.error or "Erro desconhecido")
+                            
+                    except asyncio.TimeoutError:
+                        retry_count += 1
+                        if retry_count < max_retries:
+                            wait_time = 2 ** retry_count
+                            print(f"    ⚠ Timeout! Tentativa {retry_count}/{max_retries}. Aguardando {wait_time}s...")
+                            await asyncio.sleep(wait_time)
+                        else:
+                            error_msg = f"Timeout após {max_retries} tentativas no bloco {i+1}"
+                            print(f"    ✗ {error_msg}")
+                            job.error = error_msg
+                            job.status = "error"
+                            job.save_checkpoint(job_dir)
+                            return False
+                            
+                    except Exception as e:
+                        retry_count += 1
+                        if retry_count < max_retries:
+                            print(f"    ⚠ Erro: {str(e)}. Tentativa {retry_count}/{max_retries}...")
+                            await asyncio.sleep(2)
+                        else:
+                            error_msg = f"Erro ao sintetizar bloco {i+1}: {str(e)}"
+                            print(f"    ✗ {error_msg}")
+                            job.error = error_msg
+                            job.status = "error"
+                            job.save_checkpoint(job_dir)
+                            return False
+                
+                return False
+        
+        # Processa todos os blocos em paralelo
+        tasks = [process_single_block(i, block) for i, block in enumerate(job.blocks)]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Verifica se todos foram bem-sucedidos
+        if job.status != "error" and all(r is True for r in results if isinstance(r, bool)):
+            job.progress = 100
         
         # Só prossegue para concatenação se NÃO houve erro
         if job.status != "error":
