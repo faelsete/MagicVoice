@@ -310,6 +310,9 @@ class AzureTTSEngine(TTSEngine):
                          force_language: Optional[str] = None) -> TTSResult:
         """Sintetiza texto usando Azure TTS SDK"""
         
+        print(f"    [AzureTTS DEBUG] api_key set: {self.api_key is not None and len(self.api_key) > 0}", flush=True)
+        print(f"    [AzureTTS DEBUG] region: {self.region}", flush=True)
+        
         if not self._sdk_available:
             return TTSResult(
                 success=False,

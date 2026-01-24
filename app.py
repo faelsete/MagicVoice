@@ -90,7 +90,8 @@ async def _process_job(job: TTSJob):
         job_dir.mkdir(exist_ok=True)
         print(f"  Diretório: {job_dir}")
         
-        manager = TTSManager()
+        # IMPORTANTE: Usa o tts_manager global (que tem as credenciais configuradas)
+        # NÃO criar TTSManager() novo aqui pois perde as credenciais!
         
         for i, block in enumerate(job.blocks):
             # Se o job já estiver marcado como erro por outra thread ou verificação, para
@@ -104,7 +105,7 @@ async def _process_job(job: TTSJob):
             output_path = str(job_dir / f"block_{i:04d}.mp3")
             
             try:
-                result = await manager.synthesize(
+                result = await tts_manager.synthesize(
                     text=block['content'],
                     engine_name=job.engine,
                     voice_id=job.voice_id,
@@ -242,7 +243,9 @@ def process_text():
     
     # Credenciais Azure (opcional)
     azure_config = data.get('azure_config')
+    print(f"[DEBUG] Engine: {engine}, azure_config: {azure_config is not None}")
     if azure_config and engine == 'azure':
+        print(f"[DEBUG] Configurando Azure: region={azure_config.get('region')}, key=***{azure_config.get('apiKey', '')[-4:] if azure_config.get('apiKey') else 'NONE'}")
         azure_engine = tts_manager.get_engine('azure')
         azure_engine.set_credentials(
             api_key=azure_config.get('apiKey'),

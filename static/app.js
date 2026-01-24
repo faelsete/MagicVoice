@@ -454,12 +454,21 @@ function saveSettings() {
         }
     };
 
+    console.log('[Settings] Salvando:', JSON.stringify(settings, null, 2));
     localStorage.setItem('magicvoice_settings', JSON.stringify(settings));
+    console.log('[Settings] Salvo! Verificando:', localStorage.getItem('magicvoice_settings'));
 
     // Update voices with new settings
     updateVoices();
 
     closeSettings();
+
+    // Feedback visual
+    if (settings.azure.enabled && settings.azure.apiKey) {
+        alert('✅ Azure configurado! Vozes premium ativadas.');
+    } else {
+        alert('⚠️ Azure desativado. Usando vozes Edge TTS.');
+    }
 }
 
 // Open settings modal

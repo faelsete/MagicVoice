@@ -17,14 +17,14 @@ if exist ".venv\Scripts\activate.bat" (
 )
 
 echo [*] Verificando dependencias...
-pip install -q flask gTTS pydub python-dotenv 2>nul
+pip install -q flask gTTS pydub python-dotenv azure-cognitiveservices-speech 2>nul
 
 echo [*] Verificando atualizacao do edge-tts...
 pip install --upgrade edge-tts -q 2>nul
 if %ERRORLEVEL% EQU 0 (
-    echo [+] edge-tts atualizado com sucesso!
+    echo [+] Dependencias instaladas!
 ) else (
-    echo [!] Aviso: Nao foi possivel verificar atualizacao do edge-tts
+    echo [!] Aviso: Erro ao verificar dependencias
 )
 
 echo [*] Iniciando servidor...

@@ -122,7 +122,7 @@ class AudioProcessor:
                                   gap_ms: int = 500) -> MergeResult:
         """
         Concatena múltiplos arquivos de áudio usando ffmpeg diretamente.
-        Bypass para quando o pydub está com problemas.
+        Versão robusta com melhor tratamento de erros para Windows.
         """
         import subprocess
         import tempfile
@@ -151,40 +151,69 @@ class AudioProcessor:
                     success=False,
                     output_path=None,
                     total_duration_ms=0,
-                    error=str(e)
+                    error=f"Erro ao copiar arquivo único: {str(e)}"
                 )
         
+        # Múltiplos arquivos - usa ffmpeg concat
+        list_file_path = None
         try:
-            # Cria arquivo de lista para ffmpeg concat
-            list_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
-            
+            # Valida arquivos existentes
+            valid_files = []
             for audio_path in audio_files:
                 if os.path.exists(audio_path):
-                    # Escapa aspas simples no path
-                    escaped_path = audio_path.replace("'", "'\\''")
+                    valid_files.append(audio_path)
+                else:
+                    print(f"    [FFmpeg] AVISO: Arquivo faltando: {audio_path}", flush=True)
+            
+            if not valid_files:
+                return MergeResult(
+                    success=False,
+                    output_path=None,
+                    total_duration_ms=0,
+                    error="Nenhum arquivo válido encontrado para concatenar"
+                )
+            
+            print(f"    [FFmpeg] Concatenando {len(valid_files)} arquivos válidos...", flush=True)
+            
+            # Cria arquivo de lista temporário
+            # IMPORTANTE: use mode='w', encoding='utf-8', delete=False
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix='.txt', delete=False) as list_file:
+                list_file_path = list_file.name
+                for audio_path in valid_files:
+                    # Normaliza path para Windows e converte para forward slashes (ffmpeg prefere)
+                    normalized_path = os.path.abspath(audio_path).replace('\\', '/')
+                    # Escapa aspas simples
+                    escaped_path = normalized_path.replace("'", "'\\\\''")
                     list_file.write(f"file '{escaped_path}'\n")
             
-            list_file.close()
-            
-            # Usa ffmpeg concat demuxer
+            # Comando ffmpeg usando concat demuxer
             cmd = [
                 "ffmpeg", "-y",
                 "-f", "concat",
                 "-safe", "0",
-                "-i", list_file.name,
+                "-i", list_file_path,
                 "-c", "copy",
                 output_path
             ]
             
-            print(f"    [FFmpeg] Concatenando {len(audio_files)} arquivos...", flush=True)
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            # Executa ffmpeg com timeout de 5 minutos
+            print(f"    [FFmpeg] Executando comando...", flush=True)
+            result = subprocess.run(
+                cmd, 
+                capture_output=True, 
+                text=True, 
+                timeout=300,  # 5 minutos
+                errors='replace'  # Trata encoding errors
+            )
             
-            # Remove arquivo temporário
-            os.unlink(list_file.name)
+            # Limpa arquivo temporário
+            if list_file_path and os.path.exists(list_file_path):
+                os.unlink(list_file_path)
             
-            if result.returncode == 0 and os.path.exists(output_path):
+            # Verifica sucesso
+            if result.returncode == 0 and os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                 size = os.path.getsize(output_path)
-                print(f"    [FFmpeg] ✓ Arquivo final: {size} bytes", flush=True)
+                print(f"    [FFmpeg] ✓ Arquivo final: {size / 1024 / 1024:.2f} MB", flush=True)
                 return MergeResult(
                     success=True,
                     output_path=output_path,
@@ -192,22 +221,41 @@ class AudioProcessor:
                     error=None
                 )
             else:
-                error_msg = result.stderr[:500] if result.stderr else "FFmpeg falhou sem mensagem"
-                print(f"    [FFmpeg] ✗ Erro: {error_msg}", flush=True)
+                # Captura erro (limita a 1000 chars)
+                error_msg = result.stderr[:1000] if result.stderr else "FFmpeg falhou sem mensagem"
+                print(f"    [FFmpeg] ✗ returncode={result.returncode}", flush=True)
+                print(f"    [FFmpeg] ✗ Erro: {error_msg[:200]}", flush=True)
                 return MergeResult(
                     success=False,
                     output_path=None,
                     total_duration_ms=0,
-                    error=error_msg
+                    error=f"FFmpeg error (code {result.returncode}): {error_msg[:300]}"
                 )
                 
-        except Exception as e:
-            print(f"    [FFmpeg] ✗ Exceção: {str(e)}", flush=True)
+        except subprocess.TimeoutExpired:
+            error_msg = "FFmpeg timeout - arquivo muito grande (>5min de processamento)"
+            print(f"    [FFmpeg] ✗ {error_msg}", flush=True)
+            if list_file_path and os.path.exists(list_file_path):
+                os.unlink(list_file_path)
             return MergeResult(
                 success=False,
                 output_path=None,
                 total_duration_ms=0,
-                error=str(e)
+                error=error_msg
+            )
+        except Exception as e:
+            error_msg = f"Exceção em merge_audio_files_ffmpeg: {type(e).__name__}: {str(e)}"
+            print(f"    [FFmpeg] ✗ {error_msg}", flush=True)
+            if list_file_path and os.path.exists(list_file_path):
+                try:
+                    os.unlink(list_file_path)
+                except:
+                    pass
+            return MergeResult(
+                success=False,
+                output_path=None,
+                total_duration_ms=0,
+                error=error_msg
             )
     
     def convert_to_mp3(self, input_path: str, output_path: str = None,
