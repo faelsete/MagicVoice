@@ -1,51 +1,57 @@
 # MagicVoice 🎤
 
-**Texto para áudio de alta qualidade, simples e rápido.**
+**High-quality Text-to-Speech (TTS) conversion, simple and fast.**
 
-Transforme textos em áudio MP3 usando vozes neurais. Sem cadastro, sem limites, sem complicação.
+Transform text into MP3 audio using neural voices. No registration, no limits, no complications.
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-## ✨ Modos de Uso
+## ✨ Features
 
-### Conversão Rápida
-Para textos curtos até 9 minutos de áudio. Cole o texto, escolha a voz, baixe o MP3.
+- **Fast Conversion:** For short texts up to 9 minutes of audio. Paste the text, choose the voice, download the MP3.
+- **Audiobook Mode:** For long texts. The system automatically divides the text into optimized blocks and generates a single MP3 file using parallel processing (`pydub`).
+- **Multiple Engines:** Supports `edge-tts`, `gTTS`, and Azure Cognitive Services (optional).
+- **Multi-language Support:** High-quality voices in English, Portuguese, Spanish, and Multilingual options.
 
-### Audiolivro
-Para textos longos. O sistema divide automaticamente em blocos otimizados e gera um único arquivo MP3.
+## 🚀 Installation
 
-## 🚀 Instalação
+### Windows / Linux / macOS
 
 ```bash
-# Clone o repositório
-git clone https://github.com/seu-usuario/MagicVoice.git
+# Clone the repository
+git clone https://github.com/faelsete/MagicVoice.git
 cd MagicVoice
 
-# Instale as dependências
+# Install dependencies
 pip install -r requirements.txt
 
-# Execute
+# Run the application
 python app.py
 ```
 
-Acesse: http://localhost:5000
+Access: `http://localhost:5000`
 
-## 📖 Como Usar
+## 📖 How to Use
 
-1. Cole seu texto
-2. Escolha idioma e voz
-3. Clique em "Gerar Áudio"
-4. Baixe seu MP3
+1. Paste your text.
+2. Choose language and voice.
+3. Click "Generate Audio".
+4. Download your MP3.
 
-## 🎙️ Vozes Disponíveis
+## 🎙️ Available Voices
 
-- **Português:** Antônio, Francisca, Thalita
-- **Inglês:** Guy, Jenny, Aria
-- **Espanhol:** Jorge, Dalia
-- **Multilíngue:** Ava, Andrew, Emma, Brian
+- **English:** Guy, Jenny, Aria
+- **Portuguese:** Antônio, Francisca, Thalita
+- **Spanish:** Jorge, Dalia
+- **Multilingual:** Ava, Andrew, Emma, Brian
 
-## 📝 Licença
+## 🔒 Security
 
-MIT License - use livremente.
+This application runs locally. If you choose to use the Azure integration, provide your API key in the configuration. We ensure no API keys or sensitive data are hardcoded in the public repository.
+
+## 📝 License
+
+MIT License - use freely.
+Created by [Rafael Fernandes](https://github.com/faelsete).
